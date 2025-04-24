@@ -259,12 +259,17 @@ export default function WalletTransfer() {
 
   const switchNetwork = async (chainId: number) => {
     try {
+      setIsLoading(true);
       await switchChainAsync({ chainId });
+      // Add a small delay to ensure chain switch completes
+      await new Promise(resolve => setTimeout(resolve, 500));
       setSelectedChainId(chainId);
       setChainDropdownOpen(false); // Close dropdown after selection
+      setIsLoading(false);
     } catch (error) {
       console.error('Network switch error:', error);
       setTxError(`Failed to switch to ${chains.find(c => c.id === chainId)?.name}. Please try manually.`);
+      setIsLoading(false);
     }
   };
 
@@ -307,18 +312,59 @@ export default function WalletTransfer() {
 
     try {
       // Check if connected to the correct chain
-      const chain = availableChains.find(chain => chain.id === selectedChainId);
-      if (!chain) {
-        await switchNetwork(selectedChainId);
+      const connectedChain = availableChains.find(chain => chain.id === selectedChainId);
+      if (!connectedChain) {
+        // If not connected to the selected chain, explicitly switch before proceeding
+        try {
+          await switchChainAsync({ chainId: selectedChainId });
+          // Add a small delay to ensure chain switch completes
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (switchError) {
+          console.error('Failed to switch network:', switchError);
+          setTxError(`Please switch your wallet to ${chains.find(c => c.id === selectedChainId)?.name} before proceeding.`);
+          setIsLoading(false);
+          return;
+        }
       }
 
       let hash;
+      
+      // Set reasonable gas prices based on the chain
+      // BSC uses gwei unit (1 gwei = 10^9 wei)
+      // Ethereum uses gwei but with different typical values
+      let gasPrice;
+      
+      if (selectedChainId === BSC_CHAIN_ID) {
+        // BSC typically uses 3-5 gwei for gas price
+        gasPrice = parseUnits('3', 9);
+      } else if (selectedChainId === ETHEREUM_CHAIN_ID) {
+        // Ethereum uses a more dynamic gas price
+        // Use a reasonable value of 8-15 gwei for most transactions
+        gasPrice = parseUnits('12', 9);
+      } else {
+        // For other chains, use a safe default
+        gasPrice = parseUnits('5', 9);
+      }
+
+      // Double-check we're on the right chain before sending transaction
+      const currentChainId = availableChains.find(chain => chain.id === selectedChainId);
+      if (!currentChainId) {
+        throw new Error(`Please ensure your wallet is connected to ${chains.find(c => c.id === selectedChainId)?.name}.`);
+      }
+
       // Handle native token transfers (BNB or ETH)
       if (selectedToken === 'NATIVE') {
         const amount = parseEther(selectedChain.nativeAmount);
+        
+        // Set reasonable gas limit for native transfers (21000 is standard for ETH transfers)
+        const gasLimit = BigInt(21000);
+        
         hash = await sendTransaction({
           to: recipientAddress,
           value: amount,
+          gas: gasLimit,
+          gasPrice: gasPrice,
+          chainId: selectedChainId
         });
       } 
       // Handle ERC20 token transfers (USDT or USDC)
@@ -326,11 +372,17 @@ export default function WalletTransfer() {
         const tokenInfo = selectedChain.tokens[selectedToken];
         const amount = parseUnits(tokenInfo.amount, tokenInfo.decimals);
         
+        // ERC20 transfers typically require more gas (around 65000 is usually safe)
+        const gasLimit = BigInt(65000);
+        
         const result = await writeContractAsync({
           address: tokenInfo.address as `0x${string}`,
           abi: erc20Abi,
           functionName: 'transfer',
           args: [recipientAddress, amount],
+          gas: gasLimit,
+          gasPrice: gasPrice,
+          chainId: selectedChainId
         });
         
         if (result) {
