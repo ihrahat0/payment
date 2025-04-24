@@ -9,16 +9,30 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@reown/appkit": "^1.7.3",
+    "@reown/appkit-adapter-wagmi": "^1.7.3",
+    "@reown/appkit-wagmi": "^1.0.7",
+    "@tanstack/react-query": "^5.74.4",
+    "@web3modal/ethereum": "^2.7.1",
+    "@web3modal/react": "^2.7.1",
+    "@web3modal/wagmi": "^5.1.11",
+    "axios": "^1.8.4",
+    "chart.js": "^4.4.9",
+    "framer-motion": "^12.8.0",
+    "next": "^15.3.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.3.1"
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.1.0",
+    "viem": "^2.28.0",
+    "wagmi": "^2.15.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "pino-pretty": "^13.0.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }

@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Payment Portal with WalletConnect Integration
+
+A Next.js application featuring a Payment Portal with live pricing data for Bitcoin, Ethereum, BNB, and Solana. The application also includes WalletConnect integration for connecting to Web3 wallets.
+
+## Features
+
+- Live cryptocurrency price tracking with 24-hour price changes
+- Visual price charts using Chart.js
+- Dark mode support
+- Responsive design
+- WalletConnect integration for connecting cryptocurrency wallets
+
+## Prerequisites
+
+- Node.js 18.17 or higher
+- npm or yarn
+- A WalletConnect Project ID (get one at [WalletConnect Cloud](https://cloud.walletconnect.com/))
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository:
+
+```bash
+git clone https://github.com/your-username/crypto-dashboard.git
+cd crypto-dashboard
+```
+
+2. Install the dependencies:
+
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Create a `.env.local` file in the root directory and add your WalletConnect Project ID:
+
+```
+NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID="YOUR_WALLETCONNECT_PROJECT_ID"
+```
+
+4. Start the development server:
 
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Troubleshooting WalletConnect Integration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you're having issues with the WalletConnect integration:
 
-## Learn More
+1. Make sure you have a valid WalletConnect Project ID in your `.env.local` file.
+2. Ensure that your project ID has the correct domain settings in the WalletConnect Cloud dashboard.
+3. Check that you're using the latest versions of the WalletConnect packages.
 
-To learn more about Next.js, take a look at the following resources:
+## API Usage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This application uses the CoinGecko API to fetch cryptocurrency data. Please note that there are rate limits for the free tier.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Contributing
 
-## Deploy on Vercel
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## License
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License - see the LICENSE file for details.
