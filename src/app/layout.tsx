@@ -36,7 +36,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${exo2.variable} font-exo2 antialiased bg-gray-50 dark:bg-gray-900`}
       >
         <ClientLayout>
-          {children}
+        {children}
         </ClientLayout>
       </body>
     </html>

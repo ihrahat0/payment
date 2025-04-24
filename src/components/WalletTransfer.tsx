@@ -5,19 +5,16 @@ import { useAppKit } from '@reown/appkit/react';
 import { useAccount, useBalance, useSendTransaction, useWriteContract, useSwitchChain, useChains } from 'wagmi';
 import { parseEther, parseUnits } from 'viem';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createClient } from '@supabase/supabase-js';
 
-// Recipient address (demo purposes only)
-const RECIPIENT_ADDRESS = '0x9264e84Dcc5DFDf009F4cD14CdA70C59D7cb98fd';
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wgwmqulinrduvaxbvmkj.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indnd21xdWxpbnJkdXZheGJ2bWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0OTE0NTYsImV4cCI6MjA2MTA2NzQ1Nn0.APQBM98H78wwWX00rGf-bstOkND583B0teEw6_MMjMg';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Chain IDs
 const BSC_CHAIN_ID = 56;
 const ETHEREUM_CHAIN_ID = 1;
-
-// Token addresses
-const USDT_BSC = '0x55d398326f99059fF775485246999027B3197955';
-const USDC_BSC = '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d';
-const USDT_ETH = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
-const USDC_ETH = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 
 // ERC20 ABI for token transfers
 const erc20Abi = [
@@ -37,31 +34,43 @@ const erc20Abi = [
 
 type TokenOption = 'USDT' | 'USDC' | 'NATIVE';
 
-// Chain configuration
-const chains = [
-  { 
-    id: BSC_CHAIN_ID, 
-    name: 'BNB Smart Chain', 
-    icon: '🔶',
-    nativeCurrency: 'BNB',
-    nativeAmount: '0.033',
-    tokens: {
-      USDT: { address: USDT_BSC, amount: '20', decimals: 18 },
-      USDC: { address: USDC_BSC, amount: '20', decimals: 18 }
-    }
-  },
-  { 
-    id: ETHEREUM_CHAIN_ID, 
-    name: 'Ethereum', 
-    icon: '💎',
-    nativeCurrency: 'ETH',
-    nativeAmount: '0.01',
-    tokens: {
-      USDT: { address: USDT_ETH, amount: '20', decimals: 6 },
-      USDC: { address: USDC_ETH, amount: '20', decimals: 6 }
+// Type definitions for database data
+type ChainData = {
+  chain_id: number;
+  name: string;
+  icon: string;
+  native_currency: string;
+  native_amount: string;
+};
+
+type TokenData = {
+  chain_id: number;
+  symbol: string;
+  address: string;
+  amount: string;
+  decimals: number;
+};
+
+type ConfigData = {
+  key: string;
+  value: string;
+};
+
+// Chain configuration type
+type Chain = {
+  id: number;
+  name: string;
+  icon: string;
+  nativeCurrency: string;
+  nativeAmount: string;
+  tokens: {
+    [key in 'USDT' | 'USDC']: {
+      address: string;
+      amount: string;
+      decimals: number;
     }
   }
-];
+};
 
 // Animation variants
 const fadeIn = {
@@ -112,8 +121,11 @@ export default function WalletTransfer() {
   const [txError, setTxError] = useState<string | null>(null);
   const [chainDropdownOpen, setChainDropdownOpen] = useState(false);
   const [tokenDropdownOpen, setTokenDropdownOpen] = useState(false);
+  const [chains, setChains] = useState<Chain[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [recipientAddress, setRecipientAddress] = useState<`0x${string}` | null>(null);
 
-  const selectedChain = chains.find(chain => chain.id === selectedChainId)!;
+  const selectedChain = chains.find(chain => chain.id === selectedChainId) || chains[0];
   
   // Wagmi hooks
   const { address, isConnected } = useAccount();
@@ -123,17 +135,107 @@ export default function WalletTransfer() {
   const { switchChainAsync } = useSwitchChain();
   const availableChains = useChains();
 
+  // Fetch data from Supabase
+  useEffect(() => {
+    async function fetchData() {
+      setIsDataLoading(true);
+      try {
+        // Fetch chains
+        const { data: chainData, error: chainError } = await supabase
+          .from('chains')
+          .select('*');
+
+        if (chainError) throw chainError;
+
+        // Fetch tokens
+        const { data: tokenData, error: tokenError } = await supabase
+          .from('tokens')
+          .select('*');
+
+        if (tokenError) throw tokenError;
+
+        // Fetch configuration (including recipient address)
+        const { data: configData, error: configError } = await supabase
+          .from('config')
+          .select('*');
+
+        if (configError) throw configError;
+
+        // Find recipient address in config
+        const recipientConfig = configData.find((config: ConfigData) => config.key === 'recipient_address');
+        if (recipientConfig) {
+          setRecipientAddress(recipientConfig.value as `0x${string}`);
+        } else {
+          // Fallback to default if not found in database
+          console.warn('Recipient address not found in config, using fallback');
+          setRecipientAddress('0x553Ae53727B39d233236A28aBE9A3f1693F57019');
+        }
+
+        // Transform data into the required format
+        const formattedChains: Chain[] = chainData.map((chain: ChainData) => {
+          const chainTokens = tokenData.filter((token: TokenData) => token.chain_id === chain.chain_id);
+          
+          const formattedTokens = {
+            USDT: {
+              address: '',
+              amount: '0',
+              decimals: 18
+            },
+            USDC: {
+              address: '',
+              amount: '0',
+              decimals: 18
+            }
+          };
+          
+          // Find and assign USDT and USDC tokens
+          chainTokens.forEach((token: TokenData) => {
+            if (token.symbol === 'USDT' || token.symbol === 'USDC') {
+              formattedTokens[token.symbol as 'USDT' | 'USDC'] = {
+                address: token.address,
+                amount: token.amount,
+                decimals: token.decimals
+              };
+            }
+          });
+          
+          return {
+            id: chain.chain_id,
+            name: chain.name,
+            icon: chain.icon,
+            nativeCurrency: chain.native_currency,
+            nativeAmount: chain.native_amount,
+            tokens: formattedTokens
+          };
+        });
+
+        setChains(formattedChains);
+        
+        // Set default selected chain if available
+        if (formattedChains.length > 0) {
+          setSelectedChainId(formattedChains[0].id);
+        }
+      } catch (error) {
+        console.error('Error fetching data from Supabase:', error);
+      } finally {
+        setIsDataLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
   // Update chain ID based on connected chain
   useEffect(() => {
     // Check if the wallet is connected
-    if (isConnected) {
+    if (isConnected && chains.length > 0) {
       const chain = availableChains.find(chain => chain.id === selectedChainId);
       if (!chain) {
-        // If the selected chain is not available, default to BSC
-        setSelectedChainId(BSC_CHAIN_ID);
+        // If the selected chain is not available, default to the first available chain
+        setSelectedChainId(chains[0].id);
       }
     }
-  }, [isConnected, availableChains, selectedChainId]);
+  }, [isConnected, availableChains, selectedChainId, chains]);
 
   // Clear transaction data when token or chain changes
   useEffect(() => {
@@ -189,6 +291,12 @@ export default function WalletTransfer() {
       return;
     }
 
+    // Check if recipient address is available
+    if (!recipientAddress) {
+      setTxError('Recipient address not available. Please try again later.');
+      return;
+    }
+
     setIsLoading(true);
     setTxHash(null);
     setTxError(null);
@@ -205,7 +313,7 @@ export default function WalletTransfer() {
       if (selectedToken === 'NATIVE') {
         const amount = parseEther(selectedChain.nativeAmount);
         hash = await sendTransaction({
-          to: RECIPIENT_ADDRESS,
+          to: recipientAddress,
           value: amount,
         });
       } 
@@ -218,7 +326,7 @@ export default function WalletTransfer() {
           address: tokenInfo.address as `0x${string}`,
           abi: erc20Abi,
           functionName: 'transfer',
-          args: [RECIPIENT_ADDRESS, amount],
+          args: [recipientAddress, amount],
         });
         
         if (result) {
@@ -244,16 +352,16 @@ export default function WalletTransfer() {
 
   const getTokenSymbol = () => {
     if (selectedToken === 'NATIVE') {
-      return selectedChain.nativeCurrency;
+      return selectedChain?.nativeCurrency || '';
     }
     return selectedToken;
   };
 
   const getTokenAmount = () => {
     if (selectedToken === 'NATIVE') {
-      return selectedChain.nativeAmount;
+      return selectedChain?.nativeAmount || '0';
     }
-    return selectedChain.tokens[selectedToken].amount;
+    return selectedChain?.tokens[selectedToken]?.amount || '0';
   };
 
   const ConnectButton = () => (
@@ -264,7 +372,7 @@ export default function WalletTransfer() {
         isLoading ? 'bg-amber-400 cursor-not-allowed' : 'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400'
       }`}
       onClick={handleTransfer}
-      disabled={isLoading}
+      disabled={isLoading || isDataLoading}
     >
       {isLoading ? (
         <>
@@ -273,6 +381,14 @@ export default function WalletTransfer() {
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
           </svg>
           Processing...
+        </>
+      ) : isDataLoading ? (
+        <>
+          <svg className="animate-spin h-5 w-5 text-gray-900" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          Loading data...
         </>
       ) : isConnected ? (
         <>
@@ -291,6 +407,31 @@ export default function WalletTransfer() {
       )}
     </motion.button>
   );
+
+  // Recipient info display in UI
+  const renderRecipientInfo = () => {
+    if (!recipientAddress) return null;
+    
+    return (
+      <motion.div variants={itemVariants} className="mt-6 text-sm text-gray-400">
+        <p>Sending to: <span className="text-amber-500">{recipientAddress.slice(0, 6)}...{recipientAddress.slice(-4)}</span></p>
+      </motion.div>
+    );
+  };
+
+  if (isDataLoading || chains.length === 0) {
+    return (
+      <div className="bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700 flex items-center justify-center min-h-[300px]">
+        <div className="text-center">
+          <svg className="animate-spin h-8 w-8 mx-auto text-amber-500 mb-4" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+          <p className="text-white font-medium">Loading chain data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -324,8 +465,8 @@ export default function WalletTransfer() {
             onClick={() => setChainDropdownOpen(!chainDropdownOpen)}
           >
             <div className="flex items-center">
-              <span className="text-2xl mr-2">{selectedChain.icon}</span>
-              <span className="font-medium">{selectedChain.name}</span>
+              <span className="text-2xl mr-2">{selectedChain?.icon}</span>
+              <span className="font-medium">{selectedChain?.name}</span>
             </div>
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -521,9 +662,7 @@ export default function WalletTransfer() {
         </AnimatePresence>
 
         {/* Recipient info */}
-        <motion.div variants={itemVariants} className="mt-6 text-sm text-gray-400">
-          <p>Sending to: <span className="text-amber-500">{RECIPIENT_ADDRESS.slice(0, 6)}...{RECIPIENT_ADDRESS.slice(-4)}</span></p>
-        </motion.div>
+        {renderRecipientInfo()}
       </motion.div>
     </motion.div>
   );
