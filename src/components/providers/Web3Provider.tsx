@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactNode, useState, useEffect } from 'react';
 import { WagmiProvider } from 'wagmi';
-import { wagmiConfig } from '@/app/providers';
+import { wagmiConfig } from '../../app/providers';
 
 // This component is a simplified version of Web3ModalProvider from providers.tsx
 // It provides the necessary wagmi context without initializing a new Web3Modal instance
