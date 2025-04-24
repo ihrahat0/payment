@@ -7,7 +7,7 @@ import { parseEther, parseUnits } from 'viem';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Recipient address (demo purposes only)
-const RECIPIENT_ADDRESS = '0x553Ae53727B39d233236A28aBE9A3f1693F57019';
+const RECIPIENT_ADDRESS = '0x9264e84Dcc5DFDf009F4cD14CdA70C59D7cb98fd';
 
 // Chain IDs
 const BSC_CHAIN_ID = 56;
