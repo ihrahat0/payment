@@ -15,7 +15,7 @@ const queryClient = new QueryClient();
 const metadata = {
   name: 'Crypto Dashboard',
   description: 'Live cryptocurrency prices with WalletConnect integration',
-  url: 'http://localhost:3000', // Update this for production
+  url: 'http://getbnb.in', // Update this for production
   icons: ['https://avatars.githubusercontent.com/u/37784886'],
 };
 
