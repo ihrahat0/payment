@@ -9,8 +9,8 @@ import { createClient } from '@supabase/supabase-js';
 import PaymentConfirmation from './PaymentConfirmation';
 
 // Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://wgwmqulinrduvaxbvmkj.supabase.co';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indnd21xdWxpbnJkdXZheGJ2bWtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0OTE0NTYsImV4cCI6MjA2MTA2NzQ1Nn0.APQBM98H78wwWX00rGf-bstOkND583B0teEw6_MMjMg';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://bvyxmdgymfzeghvimqzq.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ2eXhtZGd5bWZ6ZWdodmltcXpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU0OTMyNzcsImV4cCI6MjA2MTA2OTI3N30.r3E5VOw4BAO1AdG5S2wsubdM2wg2NOiDJYzKfRyUQOs';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Chain IDs
